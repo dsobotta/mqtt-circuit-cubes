@@ -1,2 +1,4 @@
-# lego-thingsboard
-Glue code and templates to enable lego mindstorms and circuit cubes for IoT
+# mqtt-circuit-cubes
+
+Tools to enable MQTT support for Tenka Circuit Cubes
+
