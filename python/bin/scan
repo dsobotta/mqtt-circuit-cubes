@@ -1,15 +1,19 @@
+#!/usr/bin/python
+
 import asyncio
 import sys
 
 from bleak import BleakScanner
+from ccmqtt import circuitcube
 
 def device_found(device, ad_data):
-    if device and device.name and "Tenka" in device.name:
+    if device and device.name and circuitcube.DEVICE_FILTER in device.name:
         print(device)
 
-async def main(filter):
+async def main():
     print("Scanning for Tenka CircuitCube BLE devices...")
     await BleakScanner.find_device_by_filter(device_found)
     print("Scan Complete.")
 
-asyncio.run(main("Tenka"))
+asyncio.run(main())
+
