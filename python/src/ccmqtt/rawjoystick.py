@@ -16,15 +16,14 @@ def list_joysticks():
 class RawJoystick:
     
     path = ""
-    device = None
+    device_id = ""
     name = ""
+    device = None
 
     num_axes = 0
-    #axis_map = []
     axis_states = {}
 
     num_buttons = 0
-    #button_map = []
     button_states = {}
 
     button_callbacks: list[Callable[["RawJoystick", int, int], None]] = list()
@@ -34,6 +33,8 @@ class RawJoystick:
         
         #open device
         self.path = filename
+        self.device_id = os.path.basename(filename)
+
         print("opening joystick %s..." % filename)
         self.device = open(filename, 'rb')
 
@@ -79,7 +80,7 @@ class RawJoystick:
     def remove_button_listener(self, function: Callable[["RawJoystick", int, int], None]):
         self.button_callbacks.remove(function)
 
-    #reads any updates from device until none remain. publishes events to button and axis listeners
+    #continualy reads updates from joystick device. publishes events to button and axis listeners
     def update_blocking(self):
         
         buf = self.device.read(8)

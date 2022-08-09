@@ -1,0 +1,37 @@
+#!/usr/bin/python
+
+import os
+import socket
+import paho.mqtt.client as mqtt
+from ccmqtt.rawjoystick import RawJoystick
+
+
+mqtt_client = mqtt.Client()
+joystick = RawJoystick("/dev/input/js0")
+
+JOYSTICK_ID = joystick.device_id
+HOSTNAME = socket.gethostname()
+AXIS_TOPIC = "{}/{}/{}".format(HOSTNAME, JOYSTICK_ID, "axis")
+BUTTON_TOPIC = "{}/{}/{}".format(HOSTNAME, JOYSTICK_ID, "button")
+
+def button_callback(joystick: RawJoystick, button: int, value: int):
+    topic = "{}/{}".format(BUTTON_TOPIC, button)
+    mqtt_client.publish(topic, value)
+
+def axis_callback(joystick: RawJoystick, axis: int, value: int):
+    topic = "{}/{}".format(AXIS_TOPIC, axis)
+    mqtt_client.publish(topic, value)
+
+def main_loop():
+
+    mqtt_client.connect("localhost", 1883, 60)
+    mqtt_client.loop_start()
+
+    joystick.add_axis_listener(axis_callback)
+    joystick.add_button_listener(button_callback)
+    joystick.update_blocking()
+    
+    mqtt_client.disconnect()
+    mqtt_client.loop_stop()
+
+main_loop()

@@ -1,61 +1,112 @@
+import asyncio
+import paho.mqtt.client as mqtt
+from bleak import BleakScanner
+from bleak import BleakClient
+from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
 
 DEVICE_FILTER = "Tenka"
-
 SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
 UART_TX_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
 UART_RX_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
 
-class CircuitCubeTranslator:
+class BLEClient:
 
-    __devicename: str = ""
-    __mqtt_topic_battery: bytes = ""
-    __mqtt_topic_power: bytes = ""
+    __device: BLEDevice = None
+    __ble_client: BleakClient = None
+    __last_batt_read: int  = 0
+    __battery_level: int = 0
 
-    def __init__(self, devicename):
-        self.__devicename = devicename
-        self.__mqtt_topic_battery = bytes("{}/status/battery".format(devicename), encoding="utf8")
-        self.__mqtt_topic_power = bytes("{}/cmd/power".format(devicename), encoding="utf8")
+    def __init__(self, device: BLEDevice):
+        self.__device = device
+        self.__ble_client = BleakClient(device.address, disconnected_callback=self.__on_client_disconnected)
 
-    #human-readable device name. Typically matches the BLE device name.
+    async def connect(self):
+        await self.__ble_client.connect()
+        await self.__ble_client.start_notify(UART_RX_UUID, self.__handle_rx)
+
+    async def disconnect(self):
+        await self.__ble_client.disconnect()
+
     @property
-    def devicename(self) -> str:
-        return self.__devicename
+    def name(self) -> str:
+        return self.__device.name
 
-    #mqtt topic for getting battery charge
-    @property
-    def mqtt_topic_battery(self) -> bytes:
-        return self.__mqtt_topic_battery
+    def __on_client_disconnected(client: BleakClient):
+        print("client disconnected: {}".format(client))
 
-    #mqtt topic for setting power levels
-    @property
-    def mqtt_topic_power(self) -> bytes:
-        return self.__mqtt_topic_power
+    def __handle_rx(self, sender: int, data: bytearray) -> None:
+        msg = data.decode("utf8", errors="ignore")
+        #print("RX:{}".format(msg))
+        if  len(msg) > 1:
+            val = msg.rsplit(".", 1)[1]
+            self.__battery_level = int(val)
+            self.__last_batt_read += 1
+
+    async def __handle_tx(self, cmd: str) -> None:
+        #print("{} TX: {}".format(self.name, cmd))
+        encoded = bytes(cmd, encoding="utf8")
+        await self.__ble_client.write_gatt_char(UART_TX_UUID, encoded)
+
+    async def __wait_until_batt_updated(self, curr_read: int):
+        while curr_read == self.__last_batt_read:
+            await asyncio.sleep(0.01)
+
+    def __gen_power_cmd(self, power: int, output: str) -> str:
+        clamped_power: int = max(-250, min(power, 250))
+        return "{:+04d}{}".format(clamped_power, output)
+
+    async def set_power(self, power: int, output: str) -> None:
+        cmd = self.__gen_power_cmd(power, output)
+        await self.__handle_tx(cmd)
+
+    async def get_battery(self) -> int:
+        await asyncio.gather(
+            self.__wait_until_batt_updated(self.__last_batt_read),
+            self.__handle_tx("b")
+        )
+        return self.__battery_level
 
 
-    def __gen_power_substr(self, power: int) -> str:
-        clamped_power = max(-250, min(power, 250) )
-        return "{:+04d}".format(clamped_power)
+class MQTTBridge:
+    
+    __ble_client: BLEClient = None
+    __mqtt_client: mqtt.Client = None
+    __event_loop = None
+    __base_topic = ""
 
+    def __init__(self, device:BLEDevice):
+        self.__ble_client = BLEClient(device)
+        self.__mqtt_client = mqtt.Client()
+        self.__base_topic = "{}/cmd/power".format(device.name)
+        self.__mqtt_client.message_callback_add("{}/a".format(self.__base_topic), self.__on_msg_cmd_a)
+        self.__mqtt_client.message_callback_add("{}/b".format(self.__base_topic), self.__on_msg_cmd_b)
+        self.__mqtt_client.message_callback_add("{}/c".format(self.__base_topic), self.__on_msg_cmd_c)
 
-    #decodes data received from BLE/UART RX characteristic
-    def uart_decode_rx(self, data: bytes) -> str:
-        return data.decode("utf8", errors="ignore")
+    async def connect(self, mqtt_ip: str) -> None:
+        await self.__ble_client.connect()
+        self.__mqtt_client.connect(mqtt_ip, 1883, 60)
+        self.__mqtt_client.subscribe("{}/#".format(self.__base_topic))
+        self.__mqtt_client.loop_start()
+        self.__event_loop = asyncio.get_event_loop()
 
-    #formats a byte array for sending a 'get battery charge' command over BLE/UART
-    #response 
-    def uart_cmd_battery(self) -> bytes:
-        cmd = "{}".format("b")
-        return bytes(cmd, encoding="utf8")
+    async def disconnect(self) -> None:
+        self.__mqtt_client.loop_stop()
+        self.__mqtt_client.disconnect()
+        self.__ble_client.disconnect()
 
-    #formats a byte array for sending a 'set power' command over BLE/UART
-    #power clamped to range [-250,250] for each output
-    def uart_cmd_power(self, a: int, b: int, c: int) -> bytes:
-        pwr_a = self.__gen_power_substr(a)
-        pwr_b = self.__gen_power_substr(b)
-        pwr_c = self.__gen_power_substr(c)
-        cmd = "{}a{}b{}c".format(pwr_a, pwr_b, pwr_c)
-        return bytes(cmd, encoding="utf8")
+    def __send_pwr_msg(self, msg, output) -> None:
+        power = int(msg.payload)
+        print("Relaying {} - {}".format(str(msg.topic), power))
+        self.__event_loop.create_task(self.__ble_client.set_power(power, output))
+
+    def __on_msg_cmd_a(self, mosq, obj, msg):
+        self.__send_pwr_msg(msg, "a")
+    
+    def __on_msg_cmd_b(self, mosq, obj, msg):
+        self.__send_pwr_msg(msg, "b")
+    
+    def __on_msg_cmd_c(self, mosq, obj, msg):
+        self.__send_pwr_msg(msg, "c")
 
     
-
-

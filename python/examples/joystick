@@ -10,19 +10,17 @@ from ccmqtt import rawjoystick
 from ccmqtt.rawjoystick import RawJoystick
 
 def button_callback(joystick: RawJoystick, button: int, value: int):
-    print("{} - B:{}:{}".format(joystick.path, button, value))
+    print("{} - B:{}:{}".format(joystick.device_id, button, value))
 
 def axis_callback(joystick: RawJoystick, axis: int, value: int):
-    print("{} - A:{}:{}".format(joystick.path, axis, value))
+    print("{} - A:{}:{}".format(joystick.device_id, axis, value))
 
 def main_loop():
 
     rawjoystick.list_joysticks()
 
     joysticks = []
-
     joysticks.append( RawJoystick("/dev/input/js0") )
-    #joysticks.append( RawJoystick("/dev/input/js1") )
 
     for joystick in joysticks:
         joystick.add_axis_listener(axis_callback)

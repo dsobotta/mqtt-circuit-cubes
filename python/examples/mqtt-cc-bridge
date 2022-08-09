@@ -1,0 +1,35 @@
+#!/usr/bin/python
+
+import os
+import asyncio
+import paho.mqtt.client as mqtt
+from bleak import BleakScanner
+from bleak import BleakClient
+from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
+
+from ccmqtt import circuitcube
+
+cc_bridges = []
+detected_devices: BLEDevice = []
+
+def device_found(device: BLEDevice, ad_data: AdvertisementData):
+    if device and device.name and circuitcube.DEVICE_FILTER in device.name:
+        detected_devices.append(device)
+
+async def main():
+
+    await BleakScanner.find_device_by_filter(device_found, 2)
+
+    print("Found {} devices".format(len(detected_devices)))
+
+    for device in detected_devices:
+        cc_bridge = circuitcube.MQTTBridge(device)
+        cc_bridges.append(cc_bridge)
+        await cc_bridge.connect("localhost")
+        print("Connected to {}".format(device.name))
+
+    while True:
+        await asyncio.sleep(1)
+
+asyncio.run(main())

@@ -4,50 +4,17 @@ import asyncio
 import sys
 
 from bleak import BleakScanner
-from bleak import BleakClient
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
 from ccmqtt import circuitcube
-from ccmqtt.circuitcube import CircuitCubeTranslator
 
 detected_devices: BLEDevice = []
-clients = []
-moc_translator = CircuitCubeTranslator("TENKA_MOC")
-
+cc_clients: circuitcube.BLEClient = []
 
 def device_found(device: BLEDevice, ad_data: AdvertisementData):
     if device and device.name and circuitcube.DEVICE_FILTER in device.name:
         detected_devices.append(device)
-
-def client_disconnected(client: BleakClient):
-    print("DISCONNECTED: {}".format(client))
-    clients.remove(client)
-
-def handle_rx(sender: int, data: bytearray):
-    str = moc_translator.uart_decode_rx(data)
-    print("RX - {}: {}".format(moc_translator.devicename, str)) 
-
-async def send_check_batt_cmd(client: BleakClient):
-    cmd = moc_translator.uart_cmd_battery()
-    print("TX: {}".format(cmd))
-    await client.write_gatt_char(circuitcube.UART_TX_UUID, cmd)
-
-async def send_velocity_cmd(client: BleakClient, a: int, b: int, c: int):
-    cmd = moc_translator.uart_cmd_power(a, b, c)
-    print("TX: {}".format(cmd))
-    await client.write_gatt_char(circuitcube.UART_TX_UUID, cmd)
-
-async def connect(device: BLEDevice):
-    client = BleakClient(device.address, disconnected_callback=client_disconnected)
-  
-    await client.connect()
-    await client.start_notify(circuitcube.UART_RX_UUID, handle_rx)
-    await send_check_batt_cmd(client)
-    
-    print("Connected to {}".format(device.name))
-    clients.append(client)
-
 
 async def main():
 
@@ -57,28 +24,27 @@ async def main():
 
     print("Found {} Tenka Circuit Cubes.".format(len(detected_devices)))
     for device in detected_devices:
-        print(device)
-        
-    print("Connecting to Circuit Cubes...")
-    for device in detected_devices:
-        await connect(device)
+        client = circuitcube.BLEClient(device)
+        cc_clients.append(client)
+        await client.connect()
+        print("Connected to {}".format(client.name))
 
     print("Running Main Loop...")
-    while len(clients) > 0:
-        for client in clients:
-            await send_velocity_cmd(client, 0, 0, 0)
+    while len(cc_clients) > 0:
+        for client in cc_clients:
+            batt_level = await client.get_battery()
+            print("{} batt level: {}%".format(client.name, batt_level))
+
+        for client in cc_clients:
+            await client.set_power(0, "a")
+            await client.set_power(0, "b")
+            await client.set_power(0, "c")
         await asyncio.sleep(1)
 
-        for client in clients:
-            await send_velocity_cmd(client, 50, 150, 250)
-        await asyncio.sleep(1)
-
-        for client in clients:
-            await send_velocity_cmd(client, 0, 0, 0)
-        await asyncio.sleep(1)
-
-        for client in clients:
-            await send_velocity_cmd(client, -50, -250, -250)
+        for client in cc_clients:
+            await client.set_power(50, "a")
+            await client.set_power(150, "b")
+            await client.set_power(250, "c")
         await asyncio.sleep(1)
 
 asyncio.run(main())
