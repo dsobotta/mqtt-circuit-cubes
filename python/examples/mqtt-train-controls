@@ -1,0 +1,83 @@
+#!/usr/bin/python
+
+import os
+import socket
+import asyncio
+import paho.mqtt.client as mqtt
+
+MQTT_SERVER = "localhost"
+HOSTNAME = socket.gethostname()
+JOYSTICK_ID = "js0"
+AXIS_TOPIC = "{}/{}/{}".format(HOSTNAME, JOYSTICK_ID, "axis")
+BUTTON_TOPIC = "{}/{}/{}".format(HOSTNAME, JOYSTICK_ID, "button")
+
+CC_DEVICE_1 = "Tenka0ca1"
+CC_DEVICE_2 = "Tenka0ca2"
+POWER_TOPIC_1 = "{}/cmd/power".format(CC_DEVICE_1)
+POWER_TOPIC_2 = "{}/cmd/power".format(CC_DEVICE_2)
+
+SPEED_1 = 85
+SPEED_2 = 170
+SPEED_3 = 255
+
+mqtt_client = mqtt.Client()
+curr_speed = SPEED_1
+input_x = 0
+input_y = 0
+
+def on_axis_x(mosq, obj, msg):
+    global input_x
+    input_x = int(msg.payload)
+    push_updates()
+
+def on_axis_y(mosq, obj, msg):
+    global input_y
+    input_y = int(msg.payload) * -1
+    push_updates()
+
+def on_speed_1(mosq, obj, msg):
+    global curr_speed
+    if int(msg.payload) > 0:
+        curr_speed = SPEED_1
+    push_updates()
+
+
+def on_speed_2(mosq, obj, msg):
+    global curr_speed
+    if int(msg.payload) > 0:
+        curr_speed = SPEED_2
+    push_updates()
+
+
+def on_speed_3(mosq, obj, msg):
+    global curr_speed
+    if int(msg.payload) > 0:
+        curr_speed = SPEED_3
+    push_updates()
+
+def push_updates():
+
+    x_speed = int(input_x * curr_speed)
+    y_speed = int(input_y * curr_speed)
+
+    publish("{}/a".format(POWER_TOPIC_1), str(x_speed))
+    publish("{}/a".format(POWER_TOPIC_2), str(y_speed))
+
+
+def publish(topic, msg):
+    print("Relaying {} - {}".format(topic, msg))
+    mqtt_client.publish(topic, msg)
+
+async def main_loop():
+    mqtt_client.message_callback_add("{}/0".format(AXIS_TOPIC), on_axis_x)
+    mqtt_client.message_callback_add("{}/1".format(AXIS_TOPIC), on_axis_y)
+    mqtt_client.message_callback_add("{}/2".format(BUTTON_TOPIC), on_speed_3)
+    mqtt_client.message_callback_add("{}/4".format(BUTTON_TOPIC), on_speed_2)
+    mqtt_client.message_callback_add("{}/6".format(BUTTON_TOPIC), on_speed_1)
+
+    mqtt_client.connect(MQTT_SERVER, 1883, 60)
+    mqtt_client.subscribe("{}/{}/#".format(HOSTNAME, JOYSTICK_ID))
+
+    mqtt_client.loop_forever()
+
+asyncio.run(main_loop())
