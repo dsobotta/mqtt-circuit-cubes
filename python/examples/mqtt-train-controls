@@ -19,16 +19,18 @@ POWER_TOPIC_2 = "{}/cmd/power".format(CC_DEVICE_2)
 SPEED_1 = 85
 SPEED_2 = 170
 SPEED_3 = 255
+GATE_SPEED = 80
 
 mqtt_client = mqtt.Client()
 curr_speed = SPEED_1
 input_x = 0
 input_y = 0
+curr_gate_speed = 0
 
-def on_axis_x(mosq, obj, msg):
-    global input_x
-    input_x = int(msg.payload)
-    push_updates()
+#def on_axis_x(mosq, obj, msg):
+#    global input_x
+#    input_x = int(msg.payload)
+#    push_updates()
 
 def on_axis_y(mosq, obj, msg):
     global input_y
@@ -41,13 +43,11 @@ def on_speed_1(mosq, obj, msg):
         curr_speed = SPEED_1
     push_updates()
 
-
 def on_speed_2(mosq, obj, msg):
     global curr_speed
     if int(msg.payload) > 0:
         curr_speed = SPEED_2
     push_updates()
-
 
 def on_speed_3(mosq, obj, msg):
     global curr_speed
@@ -55,13 +55,33 @@ def on_speed_3(mosq, obj, msg):
         curr_speed = SPEED_3
     push_updates()
 
+def on_open_doors(mosq, obj, msg):
+    global curr_speed
+    global input_y
+    val = int(msg.payload)
+    if val > 0:
+        curr_speed = 0
+    else:
+        curr_speed = SPEED_1
+    push_updates()
+
+def on_gate_up(mosq, obj, msg):
+    global curr_gate_speed
+    curr_gate_speed = int(msg.payload) * GATE_SPEED
+    push_updates()
+
+def on_gate_down(mosq, obj, msg):
+    global curr_gate_speed
+    curr_gate_speed = int(msg.payload) * -1 * GATE_SPEED
+    push_updates()
+
 def push_updates():
 
-    x_speed = int(input_x * curr_speed)
-    y_speed = int(input_y * curr_speed)
+#    x_speed = int(input_x * curr_speed)
+    y_speed = input_y * curr_speed
 
-    publish("{}/a".format(POWER_TOPIC_1), str(x_speed))
     publish("{}/a".format(POWER_TOPIC_2), str(y_speed))
+    publish("{}/c".format(POWER_TOPIC_1), str(curr_gate_speed))
 
 
 def publish(topic, msg):
@@ -69,11 +89,19 @@ def publish(topic, msg):
     mqtt_client.publish(topic, msg)
 
 async def main_loop():
-    mqtt_client.message_callback_add("{}/0".format(AXIS_TOPIC), on_axis_x)
+
+    #train
+    #mqtt_client.message_callback_add("{}/0".format(AXIS_TOPIC), on_axis_x)
     mqtt_client.message_callback_add("{}/1".format(AXIS_TOPIC), on_axis_y)
     mqtt_client.message_callback_add("{}/2".format(BUTTON_TOPIC), on_speed_3)
     mqtt_client.message_callback_add("{}/4".format(BUTTON_TOPIC), on_speed_2)
     mqtt_client.message_callback_add("{}/6".format(BUTTON_TOPIC), on_speed_1)
+    mqtt_client.message_callback_add("{}/8".format(BUTTON_TOPIC), on_open_doors)
+
+    #gate
+    mqtt_client.message_callback_add("{}/0".format(BUTTON_TOPIC), on_gate_down)
+    mqtt_client.message_callback_add("{}/1".format(BUTTON_TOPIC), on_gate_up)
+
 
     mqtt_client.connect(MQTT_SERVER, 1883, 60)
     mqtt_client.subscribe("{}/{}/#".format(HOSTNAME, JOYSTICK_ID))
