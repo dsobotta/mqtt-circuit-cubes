@@ -33,7 +33,7 @@ async def main():
     while len(cc_clients) > 0:
         for client in cc_clients:
             batt_level = await client.get_battery()
-            print("{} batt level: {}%".format(client.name, batt_level))
+            print("{} batt level: {}V".format(client.name, batt_level))
 
         for client in cc_clients:
             await client.set_power(0, "a")

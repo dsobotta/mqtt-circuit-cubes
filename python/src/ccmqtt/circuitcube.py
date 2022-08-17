@@ -15,7 +15,7 @@ class BLEClient:
     __device: BLEDevice = None
     __ble_client: BleakClient = None
     __last_batt_read: int  = 0
-    __battery_level: int = 0
+    __battery_level: float = 0
 
     def __init__(self, device: BLEDevice):
         self.__device = device
@@ -39,8 +39,7 @@ class BLEClient:
         msg = data.decode("utf8", errors="ignore")
         #print("RX:{}".format(msg))
         if  len(msg) > 1:
-            val = msg.rsplit(".", 1)[1]
-            self.__battery_level = int(val)
+            self.__battery_level = float(msg)
             self.__last_batt_read += 1
 
     async def __handle_tx(self, cmd: str) -> None:
@@ -53,14 +52,16 @@ class BLEClient:
             await asyncio.sleep(0.01)
 
     def __gen_power_cmd(self, power: int, output: str) -> str:
-        clamped_power: int = max(-250, min(power, 250))
+        clamped_power: int = max(-255, min(power, 255))
         return "{:+04d}{}".format(clamped_power, output)
 
+    #sets power for the given output {a,b,c} to range [-255,255]
     async def set_power(self, power: int, output: str) -> None:
         cmd = self.__gen_power_cmd(power, output)
         await self.__handle_tx(cmd)
 
-    async def get_battery(self) -> int:
+    #get battery level in volts
+    async def get_battery(self) -> float:
         await asyncio.gather(
             self.__wait_until_batt_updated(self.__last_batt_read),
             self.__handle_tx("b")
