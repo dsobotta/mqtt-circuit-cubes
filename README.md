@@ -4,13 +4,16 @@ Tools to enable MQTT support for Tenka Circuit Cubes
 
 # Installation
 ```
+  #Debian-based distros
   sudo apt update
   sudo apt upgrade
+  sudo apt install git python pip mosquitto mosquitto-clients
   
-  sudo apt install python pip mosquitto mosquitto-clients
-  pip install bleak
-  pip install paho-mqtt
+  #Arch-based distros
+  sudo pacman -Syuu
+  sudo pacman -S git python python-pip mosquitto
   
+  #mqtt-circuit-cube sources
   git clone https://github.com/dsobotta/mqtt-circuit-cubes.git
   cd mqtt-circuit-cubes/python
   pip install .
@@ -19,13 +22,13 @@ Tools to enable MQTT support for Tenka Circuit Cubes
 
 # Usage
 ```
-  chmod +x examples/*
-  examples/mqtt-cc-bridge
+  chmod +x bin/*
+  bin/mqtt-cc-bridge
   
   #in a separate terminal session...
-  mosquitto_pub -h localhost -t "<CC_DEVICE_ID>/cmd/power/a" -m "250" #full power
-  mosquitto_pub -h localhost -t "<CC_DEVICE_ID>/cmd/power/b" -m "-250" #full reverse power
-  mosquitto_pub -h localhost -t "<CC_DEVICE_ID>/cmd/power/c" -m "0" #power off
+  mosquitto_pub -h localhost -t "<CC_DEVICE_ID>/cmd/power/a" -m "255" #output a full power
+  mosquitto_pub -h localhost -t "<CC_DEVICE_ID>/cmd/power/b" -m "-255" #output b full reverse power
+  mosquitto_pub -h localhost -t "<CC_DEVICE_ID>/cmd/power/c" -m "0" #output c power off
   mosquitto_sub -h localhost -t "<CC_DEVICE_ID>/status/battery" #subscribe to battery status updates
 ```
 
