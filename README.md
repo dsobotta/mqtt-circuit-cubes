@@ -1,6 +1,19 @@
 # mqtt-circuit-cubes
-Tools to enable MQTT support for Tenka Circuit Cubes
+BLE interface and MQTT bridge support for Tenka Circuit Cubes.
 
+Supported platforms:
+- [x] x64 Linux
+- [x] arm32 Linux
+- [x] arm64 Linux
+- [ ] riscv64 Linux
+- [ ] esp32 (IDF)
+- [ ] esp32-c3 (IDF)
+
+APIs:
+- [x] Python
+- [ ] MicroPython
+- [ ] C/C++
+- [ ] Rust
 
 # Installation
 ```
