@@ -1,0 +1,12 @@
+{
+    "recommendations": [
+        "rust-lang.rust-analyzer",
+        "vadimcn.vscode-lldb",
+        "tamasfe.even-better-toml",
+        "usernamehw.errorlens",
+        "gruntfuggly.todo-tree",
+        "fill-labs.dependi",
+        "geequlim.godot-tools",
+        "bierner.markdown-mermaid"
+    ]
+}

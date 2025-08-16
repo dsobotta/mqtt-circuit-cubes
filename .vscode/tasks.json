@@ -1,0 +1,63 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "cargo-build-debug",
+			"dependsOn" : "cargo-clippy",
+			"group": "build",
+			"type": "shell",
+			"command": "cargo build",
+			"options": { "cwd": "${workspaceFolder}/rust/" },
+			//"problemMatcher": [ { "base": "$rustc", "fileLocation": [ "relative", "${workspaceFolder}/pipeline/rust" ], "owner": "manual-build" } ],
+		},
+		{
+			"label": "cargo-build-release",
+			"dependsOn" : "cargo-clippy",
+			"group": "build",
+			"type": "shell",
+			"command": "cargo build --release",
+			"options": { "cwd": "${workspaceFolder}/rust/" },
+			//"problemMatcher": [ { "base": "$rustc", "fileLocation": [ "relative", "${workspaceFolder}/pipeline/rust" ], "owner": "manual-build"  } ],
+		},
+		{
+			"label": "cargo-clean",
+			"group": "build",
+			"type": "shell",
+			"command": "cargo clean",
+			"options": { "cwd": "${workspaceFolder}/rust/" },
+			//"problemMatcher": [ { "base": "$rustc", "fileLocation": [ "relative", "${workspaceFolder}/pipeline/rust" ], "owner": "manual-build"  } ],
+		},
+		{
+			"label": "cargo-clippy",
+			"group": "build",
+			"type": "shell",
+			"command": "cargo clippy",
+			"options": { "cwd": "${workspaceFolder}/rust/" },
+			//"problemMatcher": [ { "base": "$rustc", "fileLocation": [ "relative", "${workspaceFolder}/pipeline/rust" ], "owner": "manual-build"  } ],
+		},
+		{
+			"label": "cargo-bench",
+			"group": "build",
+			"type": "shell",
+			"command": "cargo bench",
+			"options": { "cwd": "${workspaceFolder}/rust/" },
+			"problemMatcher": [ { "base": "$rustc", "fileLocation": [ "relative", "${workspaceFolder}/rust" ], "owner": "manual-build"  } ],
+		},
+		{
+			"label": "cargo-test",
+			"group": "build",
+			"type": "shell",
+			"command": "cargo test",
+			"options": { "cwd": "${workspaceFolder}/rust/" },
+			"problemMatcher": [ { "base": "$rustc", "fileLocation": [ "relative", "${workspaceFolder}/rust" ], "owner": "manual-build"  } ],
+		},
+		{
+			"label": "cargo-test-no-run",
+			"group": "build",
+			"type": "shell",
+			"command": "cargo test --no-run",
+			"options": { "cwd": "${workspaceFolder}/rust/" },
+			"problemMatcher": [ { "base": "$rustc", "fileLocation": [ "relative", "${workspaceFolder}/rust" ], "owner": "manual-build"  } ],
+		}
+	]
+}
