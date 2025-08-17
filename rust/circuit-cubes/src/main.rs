@@ -8,10 +8,20 @@ use std::time::Duration;
 use tokio::time;
 use uuid::Uuid;
 
-/// Only devices whose name contains this string will be tried.
-const PERIPHERAL_NAME_MATCH_FILTER: &str = "Tenka";
-/// UUID of the characteristic for which we should subscribe to notifications.
-const NOTIFY_CHARACTERISTIC_UUID: Uuid = Uuid::from_u128(0x6e400001_b5a3_f393_e0a9_e50e24dcca9e);
+const DEVICE_FILTER: &str = "Tenka";
+const SERVICE_UUID: Uuid = Uuid::from_u128(0x6e400001_b5a3_f393_e0a9_e50e24dcca9e);
+const UART_TX_UUID: Uuid = Uuid::from_u128(0x6e400002_b5a3_f393_e0a9_e50e24dcca9e);
+const UART_RX_UUID: Uuid = Uuid::from_u128(0x6e400003_b5a3_f393_e0a9_e50e24dcca9e);
+
+//     def __gen_power_cmd(self, power: int, output: str) -> str:
+// clamped_power: int = max(-255, min(power, 255))
+// return "{:+04d}{}".format(clamped_power, output)
+fn gen_power_cmd(power: i32, output: char, out_str: &mut String) {
+    let pow = power.clamp(-255, 255);
+    let data = format!("{pow:+03}{output}");
+    out_str.clear();
+    out_str.push_str(data.as_str());
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -29,7 +39,7 @@ async fn main() -> anyhow::Result<()> {
             .start_scan(ScanFilter::default())
             .await
             .expect("Can't scan BLE adapter for connected devices...");
-        time::sleep(Duration::from_secs(2)).await;
+        time::sleep(Duration::from_secs(3)).await;
         let peripherals = adapter.peripherals().await?;
 
         if peripherals.is_empty() {
@@ -43,9 +53,9 @@ async fn main() -> anyhow::Result<()> {
                     .unwrap()
                     .local_name
                     .unwrap_or(String::from("(peripheral name unknown)"));
-                println!("Peripheral {:?} is connected: {:?}", &local_name, is_connected);
+                // println!("Peripheral {:?} is connected: {:?}", &local_name, is_connected);
                 // Check if it's the peripheral we want.
-                if local_name.contains(PERIPHERAL_NAME_MATCH_FILTER) {
+                if local_name.contains(DEVICE_FILTER) {
                     println!("Found matching peripheral {:?}...", &local_name);
                     if !is_connected {
                         // Connect if we aren't already connected.
@@ -60,10 +70,32 @@ async fn main() -> anyhow::Result<()> {
                         println!("Discover peripheral {:?} services...", local_name);
                         peripheral.discover_services().await?;
                         for characteristic in peripheral.characteristics() {
-                            println!("Checking characteristic {:?}", characteristic);
-                            // Subscribe to notifications from the characteristic with the selected
-                            // UUID.
-                            if characteristic.uuid == NOTIFY_CHARACTERISTIC_UUID
+                            // println!("Checking characteristic {:?}", characteristic);
+
+                            match characteristic.uuid {
+                                SERVICE_UUID => {
+                                    println!("FOUND SERVICE  Characteristic {:?}", characteristic.uuid);
+                                }
+                                UART_TX_UUID => {
+                                    println!("FOUND UART_TX  Characteristic {:?}", characteristic.uuid);
+                                    println!("Setting Power...");
+                                    let mut cmd = String::new();
+                                    gen_power_cmd(100, 'a', &mut cmd);
+                                    let cmd_u8 = cmd.as_bytes();
+                                    peripheral
+                                        .write(&characteristic, cmd_u8, btleplug::api::WriteType::WithoutResponse)
+                                        .await?;
+                                }
+                                UART_RX_UUID => {
+                                    println!("FOUND UART_RX Characteristic {:?}", characteristic.uuid);
+                                }
+                                _ => {
+                                    println!("Ignored Characteristic {:?}", characteristic.uuid);
+                                }
+                            }
+
+                            // Subscribe to notifications from the characteristic with the selected UUID
+                            if characteristic.uuid == UART_RX_UUID
                                 && characteristic.properties.contains(CharPropFlags::NOTIFY)
                             {
                                 println!("Subscribing to characteristic {:?}", characteristic.uuid);
@@ -83,7 +115,7 @@ async fn main() -> anyhow::Result<()> {
                         peripheral.disconnect().await?;
                     }
                 } else {
-                    println!("Skipping unknown peripheral {:?}", peripheral);
+                    // println!("Skipping unknown peripheral {:?}", peripheral);
                 }
             }
         }
