@@ -469,10 +469,15 @@ checksum = "6a82ae493e598baaea5209805c49bbf2ea7de956d50d7da0da1164f9c6d28543"
 name = "libcircuitcubes"
 version = "0.0.1"
 dependencies = [
+ "anyhow",
  "btleplug",
+ "futures",
+ "pretty_env_logger",
  "serde",
  "serde_json",
  "tokio",
+ "tokio-stream",
+ "uuid",
 ]
 
 [[package]]
