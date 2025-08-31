@@ -18,6 +18,9 @@ pretty_env_logger.workspace = true
 tokio-stream.workspace = true
 uuid.workspace = true
 
+color-eyre = "0.6.3"
+crossterm = "0.29.0"
+ratatui = "0.29.0"
 
 [[bin]]
 name = "circuit-cubes"
