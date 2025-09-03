@@ -1,24 +1,28 @@
 [package]
 name = "circuit-cubes"
 version.workspace = true
-edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 libcircuitcubes = { path = "../libcircuitcubes" }
-serde.workspace = true
-serde_json.workspace = true
-btleplug.workspace = true
-tokio.workspace = true
-futures.workspace = true
-anyhow.workspace = true
-pretty_env_logger.workspace = true
-tokio-stream.workspace = true
-uuid.workspace = true
+# serde.workspace = true
+# serde_json.workspace = true
 
-color-eyre = "0.6.3"
+# btleplug = { version = "0.11", features = ["serde"] }
+# tokio = { version = "1.44.2", features = ["macros", "rt", "rt-multi-thread"] }
+# futures = "0.3.31"
+# anyhow = "1"
+# pretty_env_logger = "0.5.0"
+# tokio-stream = { version = "0.1.17", features = ["sync"] }
+# uuid = "1.16.0"
+
+# color-eyre = "0.6.3"
+
+rand = "0.9"
 crossterm = "0.29.0"
 ratatui = "0.29.0"
 
