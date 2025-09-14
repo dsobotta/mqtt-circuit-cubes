@@ -222,6 +222,7 @@ impl<'a> App<'a> {
 
     pub fn set_tab(&mut self, idx: usize) {
         self.tabs.set_index(idx);
+        self.append_log(format!("Switched to tab {idx}"));
     }
 
     pub fn on_up(&mut self) {

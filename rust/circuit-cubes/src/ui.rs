@@ -3,8 +3,8 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{self, Line, Span};
 use ratatui::widgets::canvas::{self, Canvas, Circle, Map, MapResolution, Rectangle};
 use ratatui::widgets::{
-    Axis, BarChart, Block, Cell, Chart, Dataset, Gauge, LineGauge, List, ListItem, Paragraph, Row, Sparkline, Table,
-    Tabs, Wrap,
+    Axis, BarChart, Block, Cell, Chart, Dataset, Gauge, LineGauge, List, ListDirection, ListItem, Paragraph, Row,
+    Sparkline, Table, Tabs, Wrap,
 };
 use ratatui::{Frame, symbols};
 
@@ -35,12 +35,15 @@ fn draw_console(frame: &mut Frame, app: &mut App, area: Rect) {
     let messages: Vec<ListItem> = app
         .log
         .iter()
+        .rev() //newest events first
         .map(|str| {
             let content = Line::from(Span::raw(str));
             ListItem::new(content)
         })
         .collect();
-    let messages = List::new(messages).block(Block::bordered().title("Event Log"));
+    let messages = List::new(messages)
+        .block(Block::bordered().title("Event Log"))
+        .direction(ListDirection::BottomToTop);
     frame.render_widget(messages, area);
 }
 
