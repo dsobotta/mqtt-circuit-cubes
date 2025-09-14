@@ -1,12 +1,12 @@
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
-use ratatui::text::{self, Span};
+use ratatui::text::{self, Line, Span};
 use ratatui::widgets::canvas::{self, Canvas, Circle, Map, MapResolution, Rectangle};
 use ratatui::widgets::{
     Axis, BarChart, Block, Cell, Chart, Dataset, Gauge, LineGauge, List, ListItem, Paragraph, Row, Sparkline, Table,
     Tabs, Wrap,
 };
-use ratatui::{symbols, Frame};
+use ratatui::{Frame, symbols};
 
 use crate::app::App;
 
@@ -23,11 +23,25 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         .select(app.tabs.index);
     frame.render_widget(tabs, chunks[0]);
     match app.tabs.index {
-        0 => draw_first_tab(frame, app, chunks[1]),
-        1 => draw_second_tab(frame, app, chunks[1]),
-        2 => draw_third_tab(frame, app, chunks[1]),
+        0 => draw_console(frame, app, chunks[1]),
+        1 => draw_first_tab(frame, app, chunks[1]),
+        2 => draw_second_tab(frame, app, chunks[1]),
+        3 => draw_third_tab(frame, app, chunks[1]),
         _ => {}
     };
+}
+
+fn draw_console(frame: &mut Frame, app: &mut App, area: Rect) {
+    let messages: Vec<ListItem> = app
+        .log
+        .iter()
+        .map(|str| {
+            let content = Line::from(Span::raw(str));
+            ListItem::new(content)
+        })
+        .collect();
+    let messages = List::new(messages).block(Block::bordered().title("Event Log"));
+    frame.render_widget(messages, area);
 }
 
 fn draw_first_tab(frame: &mut Frame, app: &mut App, area: Rect) {
@@ -276,8 +290,8 @@ fn draw_second_tab(frame: &mut Frame, app: &mut App, area: Rect) {
                 color: Color::Yellow,
             });
             ctx.draw(&Circle {
-                x: app.servers[2].coords.1,
-                y: app.servers[2].coords.0,
+                x: app.servers[0].coords.1,
+                y: app.servers[0].coords.0,
                 radius: 10.0,
                 color: Color::Green,
             });

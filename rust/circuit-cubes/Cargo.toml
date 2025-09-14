@@ -25,6 +25,8 @@ libcircuitcubes = { path = "../libcircuitcubes" }
 rand = "0.9"
 crossterm = "0.29.0"
 ratatui = "0.29.0"
+circular-buffer = "1.2.0"
+
 
 [[bin]]
 name = "circuit-cubes"

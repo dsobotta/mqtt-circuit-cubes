@@ -49,8 +49,13 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App, tick_rate: Dura
             last_tick = Instant::now();
             continue;
         }
+
         if let Some(key) = event::read()?.as_key_press_event() {
             match key.code {
+                KeyCode::Char('1') => app.set_tab(0),
+                KeyCode::Char('2') => app.set_tab(1),
+                KeyCode::Char('3') => app.set_tab(2),
+                KeyCode::Char('4') => app.set_tab(3),
                 KeyCode::Char('w') | KeyCode::Up => app.on_up(),
                 KeyCode::Char('a') | KeyCode::Left => app.on_left(),
                 KeyCode::Char('s') | KeyCode::Down => app.on_down(),
@@ -59,6 +64,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App, tick_rate: Dura
                 _ => {}
             }
         }
+
         if app.should_quit {
             return Ok(());
         }

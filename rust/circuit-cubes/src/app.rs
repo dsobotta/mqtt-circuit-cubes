@@ -1,68 +1,13 @@
+use circular_buffer::CircularBuffer;
 use rand::distr::{Distribution, Uniform};
 use rand::rngs::ThreadRng;
 use ratatui::widgets::ListState;
 
-const TASKS: [&str; 24] = [
-    "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Item7", "Item8", "Item9", "Item10", "Item11", "Item12",
-    "Item13", "Item14", "Item15", "Item16", "Item17", "Item18", "Item19", "Item20", "Item21", "Item22", "Item23",
-    "Item24",
-];
+const TASKS: [&str; 4] = ["Item1", "Item2", "Item3", "Item4"];
 
-const LOGS: [(&str, &str); 26] = [
-    ("Event1", "INFO"),
-    ("Event2", "INFO"),
-    ("Event3", "CRITICAL"),
-    ("Event4", "ERROR"),
-    ("Event5", "INFO"),
-    ("Event6", "INFO"),
-    ("Event7", "WARNING"),
-    ("Event8", "INFO"),
-    ("Event9", "INFO"),
-    ("Event10", "INFO"),
-    ("Event11", "CRITICAL"),
-    ("Event12", "INFO"),
-    ("Event13", "INFO"),
-    ("Event14", "INFO"),
-    ("Event15", "INFO"),
-    ("Event16", "INFO"),
-    ("Event17", "ERROR"),
-    ("Event18", "ERROR"),
-    ("Event19", "INFO"),
-    ("Event20", "INFO"),
-    ("Event21", "WARNING"),
-    ("Event22", "INFO"),
-    ("Event23", "INFO"),
-    ("Event24", "WARNING"),
-    ("Event25", "INFO"),
-    ("Event26", "INFO"),
-];
+const LOGS: [(&str, &str); 3] = [("Event1", "INFO"), ("Event2", "INFO"), ("Event3", "CRITICAL")];
 
-const EVENTS: [(&str, u64); 24] = [
-    ("B1", 9),
-    ("B2", 12),
-    ("B3", 5),
-    ("B4", 8),
-    ("B5", 2),
-    ("B6", 4),
-    ("B7", 5),
-    ("B8", 9),
-    ("B9", 14),
-    ("B10", 15),
-    ("B11", 1),
-    ("B12", 0),
-    ("B13", 4),
-    ("B14", 6),
-    ("B15", 4),
-    ("B16", 6),
-    ("B17", 4),
-    ("B18", 7),
-    ("B19", 13),
-    ("B20", 8),
-    ("B21", 11),
-    ("B22", 9),
-    ("B23", 3),
-    ("B24", 5),
-];
+const EVENTS: [(&str, u64); 2] = [("B1", 9), ("B2", 12)];
 
 #[derive(Clone)]
 pub struct RandomSignal {
@@ -123,16 +68,9 @@ impl<'a> TabsState<'a> {
     pub const fn new(titles: Vec<&'a str>) -> Self {
         Self { titles, index: 0 }
     }
-    pub fn next(&mut self) {
-        self.index = (self.index + 1) % self.titles.len();
-    }
 
-    pub fn previous(&mut self) {
-        if self.index > 0 {
-            self.index -= 1;
-        } else {
-            self.index = self.titles.len() - 1;
-        }
+    pub fn set_index(&mut self, idx: usize) {
+        self.index = (idx).clamp(0, self.titles.len());
     }
 }
 
@@ -217,6 +155,7 @@ pub struct Server<'a> {
 }
 
 pub struct App<'a> {
+    pub log: CircularBuffer<50, String>,
     pub title: &'a str,
     pub should_quit: bool,
     pub tabs: TabsState<'a>,
@@ -240,9 +179,10 @@ impl<'a> App<'a> {
         let mut sin_signal2 = SinSignal::new(0.1, 2.0, 10.0);
         let sin2_points = sin_signal2.by_ref().take(200).collect();
         App {
+            log: CircularBuffer::<50, String>::new(),
             title,
             should_quit: false,
-            tabs: TabsState::new(vec!["Tab0", "Tab1", "Tab2"]),
+            tabs: TabsState::new(vec!["Console", "Tab0", "Tab1", "Tab2"]),
             show_chart: true,
             progress: 0.0,
             sparkline: Signal {
@@ -266,34 +206,22 @@ impl<'a> App<'a> {
                 window: [0.0, 20.0],
             },
             barchart: EVENTS.to_vec(),
-            servers: vec![
-                Server {
-                    name: "NorthAmerica-1",
-                    location: "New York City",
-                    coords: (40.71, -74.00),
-                    status: "Up",
-                },
-                Server {
-                    name: "Europe-1",
-                    location: "Paris",
-                    coords: (48.85, 2.35),
-                    status: "Failure",
-                },
-                Server {
-                    name: "SouthAmerica-1",
-                    location: "São Paulo",
-                    coords: (-23.54, -46.62),
-                    status: "Up",
-                },
-                Server {
-                    name: "Asia-1",
-                    location: "Singapore",
-                    coords: (1.35, 103.86),
-                    status: "Up",
-                },
-            ],
+            servers: vec![Server {
+                name: "NorthAmerica-1",
+                location: "New York City",
+                coords: (40.71, -74.00),
+                status: "Up",
+            }],
             enhanced_graphics,
         }
+    }
+
+    pub fn append_log(&mut self, str: String) {
+        self.log.push_back(str);
+    }
+
+    pub fn set_tab(&mut self, idx: usize) {
+        self.tabs.set_index(idx);
     }
 
     pub fn on_up(&mut self) {
@@ -305,11 +233,11 @@ impl<'a> App<'a> {
     }
 
     pub fn on_right(&mut self) {
-        self.tabs.next();
+        // self.tabs.next();
     }
 
     pub fn on_left(&mut self) {
-        self.tabs.previous();
+        // self.tabs.previous();
     }
 
     pub fn on_key(&mut self, c: char) {
