@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "libcircuitcubes",
-    "circuit-cubes",
+    "robot-demo",
 ]
 
 [workspace.package]

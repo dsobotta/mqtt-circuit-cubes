@@ -7,11 +7,11 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "circuit-cubes-debug",
+            "name": "robot-demo-debug",
             "cargo": {
                 "args": [
                     "build", 
-                    "--bin", "circuit-cubes",
+                    "--bin", "robot-demo",
                     "--manifest-path", "${workspaceFolder}/rust/Cargo.toml",
                 ]
             }
@@ -19,12 +19,12 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "circuit-cubes-release",
+            "name": "robot-demo-release",
             "cargo": {
                 "args": [
                     "build",
                     "--release",
-                    "--bin", "circuit-cubes",
+                    "--bin", "robot-demo",
                     "--manifest-path", "${workspaceFolder}/rust/Cargo.toml",
                 ]
             }
