@@ -25,7 +25,7 @@ libcircuitcubes = { path = "../libcircuitcubes" }
 ratatui = "0.29.0"
 crossterm = "0.29.0"
 circular-buffer = "1.2.0"
-stickup = { version = "0.2.1", features = ["hid", "virtual"] }
+gilrs = "0.11.0"
 
 [[bin]]
 name = "robot-demo"

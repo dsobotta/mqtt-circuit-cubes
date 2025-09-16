@@ -7,6 +7,18 @@ const LOGS: [(&str, &str); 3] = [("Event1", "INFO"), ("Event2", "INFO"), ("Event
 
 const EVENTS: [(&str, u64); 2] = [("B1", 9), ("B2", 12)];
 
+const MAX_LOG_SIZE: usize = 200;
+
+pub enum CircuitCubeTerminal {
+    A,
+    B,
+    C,
+}
+pub enum CircuitCubeCommand {
+    SetPower(usize, CircuitCubeTerminal, f32),
+    GetBattery,
+}
+
 #[derive(Clone)]
 pub struct SinSignal {
     x: f64,
@@ -123,7 +135,7 @@ pub struct Server<'a> {
 }
 
 pub struct App<'a> {
-    pub log: CircularBuffer<50, String>,
+    pub log: CircularBuffer<MAX_LOG_SIZE, String>,
     pub title: &'a str,
     pub tabs: TabsState<'a>,
     pub show_chart: bool,
@@ -143,7 +155,7 @@ impl<'a> App<'a> {
         let mut sin_signal2 = SinSignal::new(0.1, 2.0, 10.0);
         let sin2_points = sin_signal2.by_ref().take(200).collect();
         App {
-            log: CircularBuffer::<50, String>::new(),
+            log: CircularBuffer::<MAX_LOG_SIZE, String>::new(),
             title,
             tabs: TabsState::new(vec!["Console", "Tab0", "Tab1", "Tab2"]),
             show_chart: true,
@@ -174,13 +186,13 @@ impl<'a> App<'a> {
         }
     }
 
-    pub fn append_log(&mut self, str: String) {
+    pub fn log_debug(&mut self, str: String) {
         self.log.push_back(str);
     }
 
     pub fn set_tab(&mut self, idx: usize) {
         self.tabs.set_index(idx);
-        self.append_log(format!("Switched to tab {idx}"));
+        self.log_debug(format!("Switched to tab {idx}"));
     }
 
     pub fn on_up(&mut self) {
@@ -207,6 +219,8 @@ impl<'a> App<'a> {
             _ => {}
         }
     }
+
+    pub fn circuit_cube_cmd(&mut self, cmd: CircuitCubeCommand) {}
 
     pub fn on_tick(&mut self) {
         // Update progress
