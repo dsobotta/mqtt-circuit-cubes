@@ -1,0 +1,34 @@
+[package]
+name = "robot-demo"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+libcircuitcubes = { path = "../libcircuitcubes" }
+# serde.workspace = true
+# serde_json.workspace = true
+
+# btleplug = { version = "0.11", features = ["serde"] }
+# tokio = { version = "1.44.2", features = ["macros", "rt", "rt-multi-thread"] }
+# futures = "0.3.31"
+# anyhow = "1"
+# pretty_env_logger = "0.5.0"
+# tokio-stream = { version = "0.1.17", features = ["sync"] }
+# uuid = "1.16.0"
+
+# color-eyre = "0.6.3"
+
+ratatui = "0.29.0"
+crossterm = "0.29.0"
+circular-buffer = "1.2.0"
+stickup = { version = "0.2.1", features = ["hid", "virtual"] }
+
+[[bin]]
+name = "robot-demo"
+test = false
+doctest = false
+bench = false
