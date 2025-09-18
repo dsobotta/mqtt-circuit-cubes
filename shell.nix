@@ -28,10 +28,11 @@ pkgs.mkShellNoCC {
 		gcc
 		pkg-config
 		dbus.dev
-		(pkgs.python3.withPackages (python-pkgs: with python-pkgs; [
-      			# select Python packages here
-      			bleak
-    		]))
+		udev
+		#(pkgs.python3.withPackages (python-pkgs: with python-pkgs; [
+      		#	# select Python packages here
+      		#	bleak
+    		#]))
 		#unstable.blender
 		#godot_4
 		#nixGL
