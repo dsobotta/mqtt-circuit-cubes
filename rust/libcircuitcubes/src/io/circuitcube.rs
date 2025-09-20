@@ -1,4 +1,4 @@
-/// Now connected (true) to peripheral "Tenka0ca1".
+// Now connected (true) to peripheral "Tenka0ca1".
 // Discover peripheral "Tenka0ca1" services...
 // Checking characteristic Characteristic { uuid: 00002a00-0000-1000-8000-00805f9b34fb, service_uuid: 00001800-0000-1000-8000-00805f9b34fb, properties: CharPropFlags(READ), descriptors: {} }
 // Checking characteristic Characteristic { uuid: 00002a01-0000-1000-8000-00805f9b34fb, service_uuid: 00001800-0000-1000-8000-00805f9b34fb, properties: CharPropFlags(READ), descriptors: {} }
@@ -89,4 +89,3 @@
 //
 //
 // Disconnecting from peripheral "Tenka0ca1"...
-struct CircuitCube {}
