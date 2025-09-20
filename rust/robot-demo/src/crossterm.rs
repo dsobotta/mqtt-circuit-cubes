@@ -24,11 +24,17 @@ const TANK_POWER_MAP: [[(i16, i16); 3]; 3] = [
     [(-TANK_TURN_SPEED, -TANK_FULL_SPEED), (-TANK_FULL_SPEED, -TANK_FULL_SPEED), (-TANK_FULL_SPEED, -TANK_TURN_SPEED)],
 ];
 
+const TANK_STICK_X: gilrs::Axis = gilrs::Axis::LeftStickX;
+const TANK_STICK_Y: gilrs::Axis = gilrs::Axis::LeftStickY;
+
+const BODY_STICK_X: gilrs::Axis = gilrs::Axis::RightStickX;
+const BODY_STICK_Y: gilrs::Axis = gilrs::Axis::RightStickY;
+
 const BODY_BANK: usize = 0;
 const BODY_TERMINAL: CircuitCubeTerminal = CircuitCubeTerminal::B;
 const BODY_TILT_SPEED: f32 = 100.0;
 const BODY_UP_BUTTON: gilrs::Button = gilrs::Button::RightTrigger;
-const BODY_DOWN_BUTTON: gilrs::Button = gilrs::Button::East;
+const BODY_DOWN_BUTTON: gilrs::Button = gilrs::Button::RightTrigger2;
 
 const HEAD_BANK: usize = 1;
 const HEAD_TERMINAL: CircuitCubeTerminal = CircuitCubeTerminal::A;
@@ -39,8 +45,8 @@ const HEAD_RIGHT_BUTTON: gilrs::Button = gilrs::Button::South;
 const CLAW_BANK: usize = 1;
 const CLAW_TERMINAL: CircuitCubeTerminal = CircuitCubeTerminal::C;
 const CLAW_SPEED: f32 = 100.0;
-const OPEN_CLAW_BUTTON: gilrs::Button = gilrs::Button::RightTrigger2;
-const CLOSE_CLAW_BUTTON: gilrs::Button = gilrs::Button::North;
+const OPEN_CLAW_BUTTON: gilrs::Button = gilrs::Button::LeftTrigger;
+const CLOSE_CLAW_BUTTON: gilrs::Button = gilrs::Button::LeftTrigger2;
 
 const RECORD_BUTTON: gilrs::Button = gilrs::Button::Select;
 const PLAY_BUTTON: gilrs::Button = gilrs::Button::Start;
@@ -109,9 +115,50 @@ fn handle_button_change(button: gilrs::Button, value: f32, app: &mut App) {
             }
         }
         _ => {
-            app.log_debug(format!("unhandled button: {:?}", button));
+            app.log_debug(format!("unhandled button: {:?} with value {:}", button, value));
         }
     }
+}
+
+
+#[derive(Debug)]
+struct TwoAxisState {
+    pub axis_x: gilrs::Axis,
+    pub axis_y: gilrs::Axis,
+    pub val_x: f32,
+    pub val_y: f32,
+}
+
+fn handle_axis_change(axis: gilrs::Axis, value: f32, tank_state: &mut TwoAxisState, body_state: &mut TwoAxisState, app: &mut App) {
+
+    let mut updated_tank_state: bool = false;
+    let mut updated_body_state: bool = false;
+    match axis {
+        TANK_STICK_X => {
+            tank_state.val_x = value;
+            updated_tank_state = true;
+        },
+        TANK_STICK_Y => {
+            tank_state.val_y = value;
+            updated_tank_state = true;
+        },
+        BODY_STICK_X => {
+            tank_state.val_x = value;
+            updated_body_state = true;
+        },
+        BODY_STICK_Y => {
+            tank_state.val_y = value;
+            updated_body_state = true;
+        },
+        _=> { app.log_debug(format!("unhandled axis: {:?}", axis));}
+    }
+
+    if updated_tank_state {
+        app.log_debug(format!("TANK axis: {:?}", axis));
+    } else if updated_body_state {
+        app.log_debug(format!("BODY axis: {:?}", axis));
+    }
+
 }
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> Result<(), Box<dyn Error>> {
@@ -123,6 +170,18 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> Result<(), B
     // }
 
     let mut active_gamepad = None;
+    let mut tank_state = TwoAxisState {
+        axis_x: TANK_STICK_X,
+        axis_y: TANK_STICK_Y,
+        val_x: 0.0,
+        val_y: 0.0
+    };
+    let mut body_state = TwoAxisState {
+        axis_x: BODY_STICK_X,
+        axis_y: BODY_STICK_Y,
+        val_x: 0.0,
+        val_y: 0.0
+    };
 
     'running: loop {
         // Examine new events
@@ -132,9 +191,9 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> Result<(), B
                 EventType::ButtonPressed(..) => (),
                 EventType::ButtonReleased(..) => (),
                 EventType::ButtonChanged(button, value, ..) => handle_button_change(button, value, &mut app),
-                // EventType::AxisChanged(axis, value, ..) => {
-
-                // }
+                EventType::AxisChanged(axis, value, ..) => {
+                    handle_axis_change(axis, value, &mut tank_state, &mut body_state, &mut app);
+                }
                 _ => {
                     app.log_debug(format!("{:?} New event from {}: {:?}", time, id, event));
                 }
