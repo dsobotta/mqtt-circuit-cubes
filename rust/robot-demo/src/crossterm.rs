@@ -22,7 +22,7 @@ const TANK_TURN_SPEED: i16 = 160;
 const TANK_SPIN_SPEED: i16 = 128;
 const TANK_POWER_MAP: [[(i16, i16); 3]; 3] = [
     [(TANK_TURN_SPEED, TANK_FULL_SPEED), (TANK_FULL_SPEED, TANK_FULL_SPEED), (TANK_FULL_SPEED, TANK_TURN_SPEED)],
-    [(-TANK_SPIN_SPEED, TANK_SPIN_SPEED), (0, 0), (TANK_SPIN_SPEED, -TANK_SPIN_SPEED)],
+    [(TANK_SPIN_SPEED, -TANK_SPIN_SPEED), (0, 0), (-TANK_SPIN_SPEED, TANK_SPIN_SPEED)],
     [(-TANK_TURN_SPEED, -TANK_FULL_SPEED), (-TANK_FULL_SPEED, -TANK_FULL_SPEED), (-TANK_FULL_SPEED, -TANK_TURN_SPEED)],
 ];
 
@@ -37,7 +37,7 @@ const BODY_STICK_Y: gilrs::Axis = gilrs::Axis::RightStickY;
 
 const BODY_BANK: usize = 1;
 const BODY_TERMINAL: CircuitCubeTerminal = CircuitCubeTerminal::B;
-const BODY_TILT_SPEED: f32 = 100.0;
+const BODY_TILT_SPEED: f32 = 255.0;
 const BODY_UP_BUTTON: gilrs::Button = gilrs::Button::RightTrigger;
 const BODY_DOWN_BUTTON: gilrs::Button = gilrs::Button::RightTrigger2;
 
@@ -49,7 +49,7 @@ const HEAD_RIGHT_BUTTON: gilrs::Button = gilrs::Button::South;
 
 const CLAW_BANK: usize = 0;
 const CLAW_TERMINAL: CircuitCubeTerminal = CircuitCubeTerminal::C;
-const CLAW_SPEED: f32 = 100.0;
+const CLAW_SPEED: f32 = 255.0;
 const OPEN_CLAW_BUTTON: gilrs::Button = gilrs::Button::LeftTrigger;
 const CLOSE_CLAW_BUTTON: gilrs::Button = gilrs::Button::LeftTrigger2;
 
@@ -142,7 +142,14 @@ struct TwoAxisState {
     pub val_y: f32,
 }
 
-fn handle_axis_change(axis: gilrs::Axis, value: f32, tank_state: &mut TwoAxisState, body_state: &mut TwoAxisState, app: &mut App) {
+fn get_tread_speed(axis_state: &TwoAxisState) -> (i16, i16) {
+    let x = 1.0 + axis_state.val_x.round();
+    let y = 1.0 + axis_state.val_y.round();
+
+    TANK_POWER_MAP[y as usize][x as usize]
+}
+
+async fn handle_axis_change(axis: gilrs::Axis, value: f32, tank_state: &mut TwoAxisState, body_state: &mut TwoAxisState, app: &mut App<'_>, cubes: &mut Vec<CircuitCube>) {
     let mut updated_tank_state: bool = false;
     let mut updated_body_state: bool = false;
     match axis {
@@ -168,7 +175,11 @@ fn handle_axis_change(axis: gilrs::Axis, value: f32, tank_state: &mut TwoAxisSta
     }
 
     if updated_tank_state {
-        app.log_debug(format!("TANK axis: {:?}", axis));
+        let speeds = get_tread_speed(&tank_state);
+        cubes[TANK_BANK].set_power(TANK_LEFT_TERMINAL, speeds.0).await;
+        cubes[TANK_BANK].set_power(TANK_RIGHT_TERMINAL, speeds.1).await;
+
+        // app.log_debug(format!("TANK axis: {:?}", axis));
     } else if updated_body_state {
         app.log_debug(format!("BODY axis: {:?}", axis));
     }
@@ -212,7 +223,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App<'_>) -> Re
                 EventType::ButtonReleased(..) => (),
                 EventType::ButtonChanged(button, value, ..) => handle_button_change(button, value, &mut app, &mut cubes).await,
                 EventType::AxisChanged(axis, value, ..) => {
-                    handle_axis_change(axis, value, &mut tank_state, &mut body_state, &mut app);
+                    handle_axis_change(axis, value, &mut tank_state, &mut body_state, &mut app, &mut cubes).await;
                 }
                 _ => {
                     app.log_debug(format!("{:?} New event from {}: {:?}", time, id, event));

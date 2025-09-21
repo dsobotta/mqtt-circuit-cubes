@@ -186,14 +186,14 @@ pub async fn get_all_cubes() -> Vec<CircuitCube> {
     let adapter_list = manager.adapters().await.expect("failed to get adapters");
 
     for adapter in adapter_list.iter() {
-        println!("Starting scan...");
+        // println!("Starting scan...");
         adapter.start_scan(ScanFilter::default()).await.expect("Can't scan BLE adapter for connected devices...");
         time::sleep(Duration::from_secs(3)).await;
 
         for p in adapter.peripherals().await.unwrap() {
             if p.properties().await.unwrap().unwrap().local_name.iter().any(|name| name.contains(DEVICE_FILTER)) {
                 let properties = p.properties().await.expect("failed to get peripheral proeprties");
-                // let local_name = properties.unwrap().local_name.unwrap_or(String::from("(peripheral name unknown)"));
+                // let local_name = properties.unwrap().local_name.unwrap_or(String::from("(peripheral name unknown)"));def __gen_power_cmd(self, power: int, output: str) -> str:
                 let address = properties.unwrap().address;
 
                 // let mut service: Option<Characteristic> = None;
@@ -202,7 +202,7 @@ pub async fn get_all_cubes() -> Vec<CircuitCube> {
 
                 let is_connected = p.is_connected().await.expect("failed to get connectd state");
                 if is_connected {
-                    println!("connected")
+                    // println!("connected")
                 } else if let Err(err) = p.connect().await {
                     println!("Error connecting to peripheral, skipping: {err}");
                 } else {
@@ -217,11 +217,11 @@ pub async fn get_all_cubes() -> Vec<CircuitCube> {
                         //     service = Some(c);
                         // }
                         UART_TX_UUID => {
-                            println!("found tx characteristic");
+                            // println!("found tx characteristic");
                             tx = Some(c);
                         }
                         UART_RX_UUID => {
-                            println!("found rx characteristic");
+                            // println!("found rx characteristic");
                             rx = Some(c);
                         }
                         _ => (),
