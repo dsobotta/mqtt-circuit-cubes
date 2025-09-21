@@ -9,7 +9,9 @@ use crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_ra
 use ratatui::Terminal;
 use ratatui::backend::{Backend, CrosstermBackend};
 
-use crate::app::{App, CircuitCubeCommand, CircuitCubeTerminal};
+use libcircuitcubes::io::circuitcube::{CircuitCube, CircuitCubeTerminal, get_all_cubes};
+
+use crate::app::App;
 use crate::ui;
 
 use gilrs::{self, EventType, Gilrs};
@@ -24,25 +26,28 @@ const TANK_POWER_MAP: [[(i16, i16); 3]; 3] = [
     [(-TANK_TURN_SPEED, -TANK_FULL_SPEED), (-TANK_FULL_SPEED, -TANK_FULL_SPEED), (-TANK_FULL_SPEED, -TANK_TURN_SPEED)],
 ];
 
+const TANK_BANK: usize = 1;
+const TANK_LEFT_TERMINAL: CircuitCubeTerminal = CircuitCubeTerminal::A;
+const TANK_RIGHT_TERMINAL: CircuitCubeTerminal = CircuitCubeTerminal::C;
 const TANK_STICK_X: gilrs::Axis = gilrs::Axis::LeftStickX;
 const TANK_STICK_Y: gilrs::Axis = gilrs::Axis::LeftStickY;
 
 const BODY_STICK_X: gilrs::Axis = gilrs::Axis::RightStickX;
 const BODY_STICK_Y: gilrs::Axis = gilrs::Axis::RightStickY;
 
-const BODY_BANK: usize = 0;
+const BODY_BANK: usize = 1;
 const BODY_TERMINAL: CircuitCubeTerminal = CircuitCubeTerminal::B;
 const BODY_TILT_SPEED: f32 = 100.0;
 const BODY_UP_BUTTON: gilrs::Button = gilrs::Button::RightTrigger;
 const BODY_DOWN_BUTTON: gilrs::Button = gilrs::Button::RightTrigger2;
 
-const HEAD_BANK: usize = 1;
+const HEAD_BANK: usize = 0;
 const HEAD_TERMINAL: CircuitCubeTerminal = CircuitCubeTerminal::A;
 const HEAD_TURN_SPEED: f32 = 100.0;
 const HEAD_LEFT_BUTTON: gilrs::Button = gilrs::Button::West;
 const HEAD_RIGHT_BUTTON: gilrs::Button = gilrs::Button::South;
 
-const CLAW_BANK: usize = 1;
+const CLAW_BANK: usize = 0;
 const CLAW_TERMINAL: CircuitCubeTerminal = CircuitCubeTerminal::C;
 const CLAW_SPEED: f32 = 100.0;
 const OPEN_CLAW_BUTTON: gilrs::Button = gilrs::Button::LeftTrigger;
@@ -51,9 +56,9 @@ const CLOSE_CLAW_BUTTON: gilrs::Button = gilrs::Button::LeftTrigger2;
 const RECORD_BUTTON: gilrs::Button = gilrs::Button::Select;
 const PLAY_BUTTON: gilrs::Button = gilrs::Button::Start;
 
-pub fn run(enhanced_graphics: bool) -> Result<(), Box<dyn Error>> {
+pub async fn run(enhanced_graphics: bool) -> Result<(), Box<dyn Error>> {
     // setup terminal
-    //enable_raw_mode()?;
+    enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
@@ -61,7 +66,7 @@ pub fn run(enhanced_graphics: bool) -> Result<(), Box<dyn Error>> {
 
     // create app and run it
     let app = App::new("Crossterm Demo", enhanced_graphics);
-    let app_result = run_app(&mut terminal, app);
+    let app_result = run_app(&mut terminal, app).await;
 
     // restore terminal
     disable_raw_mode()?;
@@ -75,35 +80,44 @@ pub fn run(enhanced_graphics: bool) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn handle_button_change(button: gilrs::Button, value: f32, app: &mut App) {
+struct CircuitCubeCommand {}
+
+async fn cc_set_power(bank: usize, terminal: CircuitCubeTerminal, power: f32) {}
+
+fn to_i16(val: f32) -> i16 {
+    val as i16
+}
+
+async fn handle_button_change(button: gilrs::Button, value: f32, app: &mut App<'_>, cubes: &mut Vec<CircuitCube>) {
     match button {
         HEAD_LEFT_BUTTON => {
-            app.circuit_cube_cmd(CircuitCubeCommand::SetPower(HEAD_BANK, HEAD_TERMINAL, HEAD_TURN_SPEED * -value));
-            app.log_debug("HEAD_LEFT".to_string());
+            let power = to_i16(HEAD_TURN_SPEED * -value);
+            cubes[HEAD_BANK].set_power(HEAD_TERMINAL, power).await;
+            app.log_debug(format!("HEAD_LEFT -- power: {power}, value: {value}"));
         }
         HEAD_RIGHT_BUTTON => {
-            app.circuit_cube_cmd(CircuitCubeCommand::SetPower(HEAD_BANK, HEAD_TERMINAL, HEAD_TURN_SPEED * value));
-            app.log_debug("HEAD_RIGHT".to_string());
+            let power = to_i16(HEAD_TURN_SPEED * value);
+            cubes[HEAD_BANK].set_power(HEAD_TERMINAL, power).await;
+            app.log_debug(format!("HEAD_RIGHT -- power: {power}, value: {value}"));
         }
 
         BODY_UP_BUTTON => {
-            app.circuit_cube_cmd(CircuitCubeCommand::SetPower(BODY_BANK, BODY_TERMINAL, BODY_TILT_SPEED * -value));
+            cubes[BODY_BANK].set_power(BODY_TERMINAL, to_i16(BODY_TILT_SPEED * -value)).await;
             app.log_debug("BODY_UP".to_string());
         }
         BODY_DOWN_BUTTON => {
-            app.circuit_cube_cmd(CircuitCubeCommand::SetPower(BODY_BANK, BODY_TERMINAL, BODY_TILT_SPEED * value));
+            cubes[BODY_BANK].set_power(BODY_TERMINAL, to_i16(BODY_TILT_SPEED * value)).await;
             app.log_debug("BODY_DOWN".to_string());
         }
 
         OPEN_CLAW_BUTTON => {
-            app.circuit_cube_cmd(CircuitCubeCommand::SetPower(CLAW_BANK, CLAW_TERMINAL, CLAW_SPEED * -value));
+            cubes[CLAW_BANK].set_power(CLAW_TERMINAL, to_i16(CLAW_SPEED * value)).await;
             app.log_debug("OPEN_CLAW".to_string());
         }
         CLOSE_CLAW_BUTTON => {
-            app.circuit_cube_cmd(CircuitCubeCommand::SetPower(CLAW_BANK, CLAW_TERMINAL, CLAW_SPEED * value));
+            cubes[CLAW_BANK].set_power(CLAW_TERMINAL, to_i16(CLAW_SPEED * value)).await;
             app.log_debug("CLOSE_CLAW".to_string());
         }
-
         RECORD_BUTTON => {
             if value > 0.0 {
                 app.log_debug("RECORDING...".to_string());
@@ -120,7 +134,6 @@ fn handle_button_change(button: gilrs::Button, value: f32, app: &mut App) {
     }
 }
 
-
 #[derive(Debug)]
 struct TwoAxisState {
     pub axis_x: gilrs::Axis,
@@ -130,27 +143,28 @@ struct TwoAxisState {
 }
 
 fn handle_axis_change(axis: gilrs::Axis, value: f32, tank_state: &mut TwoAxisState, body_state: &mut TwoAxisState, app: &mut App) {
-
     let mut updated_tank_state: bool = false;
     let mut updated_body_state: bool = false;
     match axis {
         TANK_STICK_X => {
             tank_state.val_x = value;
             updated_tank_state = true;
-        },
+        }
         TANK_STICK_Y => {
             tank_state.val_y = value;
             updated_tank_state = true;
-        },
+        }
         BODY_STICK_X => {
             tank_state.val_x = value;
             updated_body_state = true;
-        },
+        }
         BODY_STICK_Y => {
             tank_state.val_y = value;
             updated_body_state = true;
-        },
-        _=> { app.log_debug(format!("unhandled axis: {:?}", axis));}
+        }
+        _ => {
+            app.log_debug(format!("unhandled axis: {:?}", axis));
+        }
     }
 
     if updated_tank_state {
@@ -158,10 +172,16 @@ fn handle_axis_change(axis: gilrs::Axis, value: f32, tank_state: &mut TwoAxisSta
     } else if updated_body_state {
         app.log_debug(format!("BODY axis: {:?}", axis));
     }
-
 }
 
-fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> Result<(), Box<dyn Error>> {
+async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App<'_>) -> Result<(), Box<dyn Error>> {
+    let mut cubes = get_all_cubes().await;
+
+    app.log_debug(format!("found {} circuit cubes!", cubes.len()));
+    for cube in &cubes {
+        app.log_debug(format!("cube {}", cube.get_addr()));
+    }
+
     let mut gilrs = Gilrs::new().unwrap();
 
     // Iterate over all connected gamepads
@@ -174,13 +194,13 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> Result<(), B
         axis_x: TANK_STICK_X,
         axis_y: TANK_STICK_Y,
         val_x: 0.0,
-        val_y: 0.0
+        val_y: 0.0,
     };
     let mut body_state = TwoAxisState {
         axis_x: BODY_STICK_X,
         axis_y: BODY_STICK_Y,
         val_x: 0.0,
-        val_y: 0.0
+        val_y: 0.0,
     };
 
     'running: loop {
@@ -190,7 +210,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> Result<(), B
             match event {
                 EventType::ButtonPressed(..) => (),
                 EventType::ButtonReleased(..) => (),
-                EventType::ButtonChanged(button, value, ..) => handle_button_change(button, value, &mut app),
+                EventType::ButtonChanged(button, value, ..) => handle_button_change(button, value, &mut app, &mut cubes).await,
                 EventType::AxisChanged(axis, value, ..) => {
                     handle_axis_change(axis, value, &mut tank_state, &mut body_state, &mut app);
                 }
