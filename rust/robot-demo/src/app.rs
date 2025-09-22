@@ -9,16 +9,6 @@ const EVENTS: [(&str, u64); 2] = [("B1", 9), ("B2", 12)];
 
 const MAX_LOG_SIZE: usize = 200;
 
-// pub enum CircuitCubeTerminal {
-//     A,
-//     B,
-//     C,
-// }
-// pub enum CircuitCubeCommand {
-//     SetPower(usize, CircuitCubeTerminal, f32),
-//     GetBattery,
-// }
-
 #[derive(Clone)]
 pub struct SinSignal {
     x: f64,

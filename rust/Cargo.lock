@@ -24,12 +24,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
-name = "anyhow"
-version = "1.0.99"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0674a1ddeecb70197781e945de4b3b8ffb61fa939a5597bcf48503737663100"
-
-[[package]]
 name = "async-trait"
 version = "0.1.89"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -179,6 +173,16 @@ name = "cfg_aliases"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
+
+[[package]]
+name = "circuitcubes"
+version = "0.0.1"
+dependencies = [
+ "btleplug",
+ "futures",
+ "tokio",
+ "uuid",
+]
 
 [[package]]
 name = "circular-buffer"
@@ -728,18 +732,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a82ae493e598baaea5209805c49bbf2ea7de956d50d7da0da1164f9c6d28543"
 
 [[package]]
-name = "libcircuitcubes"
-version = "0.0.1"
-dependencies = [
- "anyhow",
- "btleplug",
- "futures",
- "tokio",
- "tokio-stream",
- "uuid",
-]
-
-[[package]]
 name = "libdbus-sys"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1008,10 +1000,10 @@ dependencies = [
 name = "robot-demo"
 version = "0.0.1"
 dependencies = [
+ "circuitcubes",
  "circular-buffer",
  "crossterm 0.29.0",
  "gilrs",
- "libcircuitcubes",
  "ratatui",
  "tokio",
 ]

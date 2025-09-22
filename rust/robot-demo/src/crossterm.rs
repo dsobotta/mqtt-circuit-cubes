@@ -9,7 +9,7 @@ use crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_ra
 use ratatui::Terminal;
 use ratatui::backend::{Backend, CrosstermBackend};
 
-use libcircuitcubes::io::circuitcube::{CircuitCube, CircuitCubeTerminal, get_all_cubes};
+use circuitcubes::{CircuitCube, CircuitCubeTerminal, get_all_cubes};
 
 use crate::app::App;
 use crate::ui;
@@ -88,7 +88,7 @@ fn to_i16(val: f32) -> i16 {
     val as i16
 }
 
-async fn handle_button_change(button: gilrs::Button, value: f32, app: &mut App<'_>, cubes: &mut Vec<CircuitCube>) {
+async fn handle_button_change(button: gilrs::Button, value: f32, app: &mut App<'_>, cubes: &mut [CircuitCube]) {
     match button {
         HEAD_LEFT_BUTTON => {
             let power = to_i16(HEAD_TURN_SPEED * -value);
