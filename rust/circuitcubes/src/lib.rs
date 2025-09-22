@@ -11,10 +11,15 @@ pub const SERVICE_UUID: Uuid = Uuid::from_u128(0x6e400001_b5a3_f393_e0a9_e50e24d
 pub const UART_TX_UUID: Uuid = Uuid::from_u128(0x6e400002_b5a3_f393_e0a9_e50e24dcca9e);
 pub const UART_RX_UUID: Uuid = Uuid::from_u128(0x6e400003_b5a3_f393_e0a9_e50e24dcca9e);
 
-pub enum CircuitCubeTerminal {
+pub enum Terminal {
     A,
     B,
     C,
+}
+
+pub enum Command {
+    SetPower(Terminal, i16),
+    PollBattery,
 }
 
 pub struct CircuitCubeBTLE {
@@ -67,23 +72,26 @@ impl CircuitCube {
         self.btle.peripheral.disconnect().await.expect("failed to disconnect");
     }
 
-    pub async fn set_power(&mut self, terminal: CircuitCubeTerminal, power: i16) {
-        let c: char = match terminal {
-            CircuitCubeTerminal::A => 'a',
-            CircuitCubeTerminal::B => 'b',
-            CircuitCubeTerminal::C => 'c',
-        };
-        //CircuitCube::gen_power_cmd(power, c, &mut self.cmd_buf);
+    pub async fn send_cmd(&mut self, cmd: Command) {
+        match cmd {
+            Command::SetPower(terminal, power) => {
+                let c: char = match terminal {
+                    Terminal::A => 'a',
+                    Terminal::B => 'b',
+                    Terminal::C => 'c',
+                };
 
-        let pow = power.clamp(-255, 255);
-        self.cmd_buf = format!("{pow:+04}{c}");
-
-        let cmd_u8 = self.cmd_buf.as_bytes();
-        self.btle
-            .peripheral
-            .write(&self.btle.tx, cmd_u8, btleplug::api::WriteType::WithoutResponse)
-            .await
-            .expect("failed to tx");
+                let pow = power.clamp(-255, 255);
+                self.cmd_buf = format!("{pow:+04}{c}");
+                let cmd_u8 = self.cmd_buf.as_bytes();
+                self.btle
+                    .peripheral
+                    .write(&self.btle.tx, cmd_u8, btleplug::api::WriteType::WithoutResponse)
+                    .await
+                    .expect("failed to tx");
+            }
+            Command::PollBattery => (),
+        }
     }
 }
 

@@ -210,8 +210,6 @@ impl<'a> App<'a> {
         }
     }
 
-    // pub fn circuit_cube_cmd(&mut self, cmd: CircuitCubeCommand) {}
-
     pub fn on_tick(&mut self) {
         // Update progress
         self.progress += 0.001;
